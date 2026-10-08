@@ -1,13 +1,14 @@
 -- Mr H mspaint addon viewer
--- Standalone Obsidian host. Put this launcher OUTSIDE addonuser.
+-- Standalone Obsidian host. Put this launcher OUTSIDE addonuser/addons.
 -- Addon files are executable code, not a sandbox. Only install trusted addons.
-local ROOT = "addonuser"
+local ROOT = "addonuser/addons"
 local LIBRARY_URL = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"
 local globals = getgenv and getgenv() or _G
 local baseEnvironment = getfenv(1)
 for _, name in ipairs({ "listfiles", "readfile", "isfolder", "makefolder", "loadstring", "setfenv" }) do
     assert(type(baseEnvironment[name]) == "function", "Mr H viewer requires " .. name)
 end
+if not isfolder("addonuser") then makefolder("addonuser") end
 if not isfolder(ROOT) then makefolder(ROOT) end
 local previous = globals.MrHAddonViewer
 if previous and type(previous.Unload) == "function" then previous:Unload() end
