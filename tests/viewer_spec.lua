@@ -72,7 +72,7 @@ warn = function(message) reports[#reports + 1] = message end
 task = { wait = coroutine.yield, spawn = function(fn) scanner = coroutine.create(fn) assert(coroutine.resume(scanner)) end }
 onCleanup = function() cleanupCount = cleanupCount + 1 end
 local viewer = assert(loadfile("viewer.lua"))()
-assert(folders["mspaint/addons"] and next(__mockLibrary.Tabs) == nil, "empty hub created content")
+assert(folders["addonuser"] and next(__mockLibrary.Tabs) == nil, "empty hub created content")
 local function scan() local ok, reason = coroutine.resume(scanner) assert(ok, reason) end
 local addon = [[
 mspaint.AddonInfo = { Name = "Test", Title = "Test", Game = "doors/doors" }
@@ -83,22 +83,22 @@ Toggles.Enabled:SetValue(true)
 assert(callbackValue == true)
 Library:OnUnload(onCleanup)
 ]]
-files["mspaint/addons/a.lua"] = addon
-files["mspaint/addons/b.luau"] = addon
-files["mspaint/addons/ignored.md"] = "error('must not execute')"
+files["addonuser/a.lua"] = addon
+files["addonuser/b.luau"] = addon
+files["addonuser/ignored.md"] = "error('must not execute')"
 scan()
 local count = 0 for _ in pairs(__mockLibrary.Tabs) do count = count + 1 end
 assert(count == 2, "two addons must have independent tabs")
 local controls = 0 for _, c in pairs(__mockLibrary.Toggles) do controls = controls + 1 assert(c.Value == true) end
 assert(controls == 2, "control IDs collided")
 scan() assert(cleanupCount == 0, "unchanged addons reloaded")
-files["mspaint/addons/a.lua"] = addon .. "\n-- edited"
+files["addonuser/a.lua"] = addon .. "\n-- edited"
 scan() assert(cleanupCount == 1, "reload did not clean up")
-files["mspaint/addons/b.luau"] = nil
+files["addonuser/b.luau"] = nil
 scan() assert(cleanupCount == 2, "removal did not clean up")
-files["mspaint/addons/wrong.txt"] = [[mspaint.AddonInfo={Name="Wrong",Title="Wrong",Game="doors/lobby"}; error("continued wrong game")]]
-files["mspaint/addons/broken.lua"] = "this is invalid Lua"
-files["mspaint/addons/custom.lua"] = [[
+files["addonuser/wrong.txt"] = [[mspaint.AddonInfo={Name="Wrong",Title="Wrong",Game="doors/lobby"}; error("continued wrong game")]]
+files["addonuser/broken.lua"] = "this is invalid Lua"
+files["addonuser/custom.lua"] = [[
 mspaint.AddonInfo={Name="Custom",Title="Custom",Game="*"}
 Library.Window:AddTab("Custom", "route"):AddLeftGroupbox("Main"):AddInput("Text",{Default="hello"})
 assert(Options.Text.Value=="hello")
@@ -107,7 +107,7 @@ Library:OnUnload(onCleanup)
 scan()
 assert(__mockLibrary.Tabs.Wrong == nil and __mockLibrary.Tabs.Custom)
 assert(#reports == 1, "syntax error not isolated or wrong-game produced errors")
-files["mspaint/addons/fails.lua"] = [[
+files["addonuser/fails.lua"] = [[
 mspaint.AddonInfo={Name="Fails",Title="Fails",Game="*"}
 mspaint.Groupbox:AddLabel("partial")
 Library:OnUnload(onCleanup)

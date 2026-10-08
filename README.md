@@ -12,11 +12,11 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/KoSmoXD/mspaintaddons
 ```
 
 Or download `viewer.lua` and execute it directly. Keep the launcher **outside**
-`mspaint/addons`; that directory is for addons only.
+`addonuser`; that directory is for addons only.
 
 ## Add your addons
 
-1. Start the viewer once. It creates `mspaint/addons` in your executor workspace.
+1. Start the viewer once. It creates `addonuser` in your executor workspace.
 2. Place an mspaint addon `.lua`, `.luau`, or `.txt` file directly in that folder.
 3. Its controls appear automatically, normally within two seconds.
 
