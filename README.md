@@ -1,7 +1,7 @@
 # Mr H mspaint addon viewer
 
-A standalone Obsidian window that starts **empty**. No built-in gameplay features,
-tabs, settings, credits, or example addons. UI appears when you install an addon.
+A standalone Obsidian window with a **Settings → Viewer → Unload** button.
+Addon controls appear when you install an addon. No built-in gameplay features.
 
 ## Launch
 
@@ -24,7 +24,8 @@ Editing a file reloads that addon. Removing it removes its UI. Unchanged files
 are not repeatedly executed. Subfolders are not scanned. Press **Right Control**
 to show/hide the window.
 
-The viewer can be closed and cleaned up from your executor:
+Use **Settings → Viewer → Unload** to stop scanning, clean up loaded addons, and
+close the viewer. You can also unload from your executor:
 
 ```lua
 getgenv().MrHAddonViewer:Unload()

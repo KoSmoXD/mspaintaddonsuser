@@ -1,6 +1,7 @@
 -- Lua 5.3+ host tests. No Roblox or network required.
 local files, folders, scanner = {}, {}, nil
 local reports, cleanupCount = {}, 0
+local unloadButton
 local function makeUI()
     local ui = { Options = {}, Toggles = {}, Tabs = {}, Unloaded = false, unloaders = {} }
     local window = {}
@@ -18,6 +19,7 @@ local function makeUI()
     end
     local function group()
         local g = {}
+        function g:AddButton(config) if config.Text == "Unload" then unloadButton = config.Func end end
         function g:AddToggle(id, config) return control(ui.Toggles, id, config) end
         function g:AddInput(id, config) return control(ui.Options, id, config) end
         function g:AddLabel(text) return { Text = text } end
@@ -72,7 +74,7 @@ warn = function(message) reports[#reports + 1] = message end
 task = { wait = coroutine.yield, spawn = function(fn) scanner = coroutine.create(fn) assert(coroutine.resume(scanner)) end }
 onCleanup = function() cleanupCount = cleanupCount + 1 end
 local viewer = assert(loadfile("viewer.lua"))()
-assert(folders["addonuser"] and folders["addonuser/addons"] and next(__mockLibrary.Tabs) == nil, "empty hub created content")
+assert(folders["addonuser"] and folders["addonuser/addons"] and __mockLibrary.Tabs.Settings and unloadButton, "settings/unload missing")
 local function scan() local ok, reason = coroutine.resume(scanner) assert(ok, reason) end
 local addon = [[
 mspaint.AddonInfo = { Name = "Test", Title = "Test", Game = "doors/doors" }
@@ -88,7 +90,7 @@ files["addonuser/addons/b.luau"] = addon
 files["addonuser/addons/ignored.md"] = "error('must not execute')"
 scan()
 local count = 0 for _ in pairs(__mockLibrary.Tabs) do count = count + 1 end
-assert(count == 2, "two addons must have independent tabs")
+assert(count == 3, "two addons and Settings must have independent tabs")
 local controls = 0 for _, c in pairs(__mockLibrary.Toggles) do controls = controls + 1 assert(c.Value == true) end
 assert(controls == 2, "control IDs collided")
 scan() assert(cleanupCount == 0, "unchanged addons reloaded")
@@ -126,7 +128,7 @@ local errors = 0
 for name in pairs(__mockLibrary.Tabs) do if name:match("^Load error:") then errors=errors+1 end end
 assert(errors == 3, "failed addons need visible explanations")
 for path in pairs(files) do files[path] = nil end
-scan() assert(next(__mockLibrary.Tabs) == nil and cleanupCount == 5, "removal did not restore empty window")
-viewer:Unload()
+scan() assert(__mockLibrary.Tabs.Settings and cleanupCount == 5, "removal did not retain Settings")
+unloadButton()
 assert(not viewer.Running and __mockLibrary.Unloaded and MrHAddonViewer == nil)
 print("PASS: empty startup, hot add/edit/remove, ID isolation, callback/registry forwarding, dependency controls, game filters, custom tabs, errors, cleanup")

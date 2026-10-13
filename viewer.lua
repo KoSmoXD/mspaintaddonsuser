@@ -280,7 +280,13 @@ Library:OnUnload(function()
     for _, record in pairs(viewer.Addons) do cleanup(record) end
     if globals.MrHAddonViewer == viewer then globals.MrHAddonViewer = nil end
 end)
--- No default tabs, controls, sample addon, settings or credits.
+-- Viewer controls remain available even when no addons are installed.
+local settingsTab = Window:AddTab("Settings", "settings")
+local settingsBox = settingsTab:AddLeftGroupbox("Viewer")
+settingsBox:AddButton({
+    Text = "Unload",
+    Func = function() viewer:Unload() end,
+})
 scan()
 task.spawn(function()
     while viewer.Running do
