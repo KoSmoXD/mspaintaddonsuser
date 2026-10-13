@@ -49,6 +49,10 @@ local function gameMatches(filter)
 end
 
 local function cleanup(record)
+    if record.statusTab then
+        pcall(function() record.statusTab:Destroy() end)
+        record.statusTab = nil
+    end
     if record.dead then return end
     record.dead = true
     for i = #record.cleanup, 1, -1 do
@@ -80,6 +84,18 @@ local function runAddon(path, source)
     local proxies, originals = {}, {}
     local info, groupbox
     local wrap
+    local function failed(message)
+        cleanup(record)
+        record.error = tostring(message)
+        report(path, record.error)
+        local tab = Window:AddTab("Load error: " .. (path:match("[^/]+$") or path) .. " [" .. serial .. "]", "triangle-alert")
+        record.statusTab = tab
+        local box = tab:AddLeftGroupbox("Addon could not load")
+        box:AddLabel(path, true)
+        box:AddLabel(record.error, true)
+        box:AddLabel("Edit or replace this addon file to retry. Mr H addon and Tplay addons require full mspaint in mspaint/addons, inside a DOORS run.", true)
+        if tab.Show then tab:Show() end
+    end
 
     local function unwrap(value, visited)
         if type(value) ~= "table" then return value end
@@ -111,6 +127,7 @@ local function runAddon(path, source)
         proxies[object], originals[proxy] = proxy, object
         setmetatable(proxy, {
             __index = function(_, key)
+                if object == Library and key == "Window" then return wrap(Window) end
                 if object == Library and key == "Unloaded" then return record.dead or Library.Unloaded end
                 if object == Library and key == "OnUnload" then
                     return function(_, callback)
@@ -186,19 +203,35 @@ local function runAddon(path, source)
         end,
     })
     local environment = setmetatable({
-        mspaint = host, Library = wrap(Library),
+        mspaint = host, Library = wrap(Library), Window = wrap(Window),
         Options = localRegistry(Library.Options), Toggles = localRegistry(Library.Toggles),
     }, { __index = baseEnvironment })
-    local chunk, syntaxError = loadstring(source, "@" .. path)
-    if not chunk then record.error = syntaxError cleanup(record) report(path, syntaxError) return end
+    -- Preserve addon-local API access even through getgenv() and URL loaders.
+    local addonGlobals = setmetatable({}, {
+        __index = function(_, key)
+            if key == "mspaint" or key == "Library" or key == "Window" or key == "Options" or key == "Toggles" then return environment[key] end
+            return globals[key]
+        end,
+        __newindex = function(_, key, value) globals[key] = value end,
+    })
+    environment.getgenv = function() return addonGlobals end
+    environment.loadstring = function(text, name)
+        local fn, reason = loadstring(text, name)
+        if fn then setfenv(fn, environment) end
+        return fn, reason
+    end
+    local chunk, syntaxError = environment.loadstring(source, "@" .. path)
+    if not chunk then failed(syntaxError) return end
     setfenv(chunk, environment)
     local ok, reason = pcall(chunk)
     if not ok or not info then
-        cleanup(record)
-        if reason ~= SKIP then
-            record.error = reason or "Missing mspaint.AddonInfo"
-            report(path, record.error)
+        if reason == SKIP then
+            failed("This addon targets a different game or lobby/run. Open its supported game and reload the viewer.")
+        else
+            failed(reason or "Missing mspaint.AddonInfo")
         end
+    elseif #record.tabs == 0 then
+        failed("The addon finished without creating controls. It may require full mspaint or an unsupported API.")
     end
 end
 
@@ -208,6 +241,7 @@ local function scan()
     local files, seen = {}, {}
     for _, rawPath in ipairs(paths) do
         local path = rawPath:gsub("\\", "/"):gsub("^%./", "")
+        if not path:find("/", 1, true) then path = ROOT .. "/" .. path end
         -- Only direct files, not directories or nested addon trees.
         local name = path:match("([^/]+)$")
         if name and (name:lower():match("%.lua$") or name:lower():match("%.luau$") or name:lower():match("%.txt$"))

@@ -58,8 +58,14 @@ Addons are executable scripts with the executor's capabilities, not sandboxed
 previews. Only put trusted files in the folder. On reload/removal, an addon must
 clean up its own spawned tasks, connections, world objects, and gameplay changes
 using `Library:OnUnload`; the viewer cannot undo arbitrary script side effects.
-Errors are reported in the developer console without adding error panels to the
-empty hub. A failed or wrong-game addon is retried when its file changes.
+Errors are reported in the developer console and in a visible Load error tab.
+Wrong-game addons also explain why they were skipped. A failed addon is retried
+when its file changes. Removing the file removes its error tab.
+
+Mr H addon and Tplay addons require the full mspaint runtime; install those in
+`mspaint/addons` and launch mspaint inside a DOORS run. This viewer does not
+implement their required base features. Compatible addons can access the host
+through `getgenv().mspaint` or nested `loadstring` URL loaders.
 
 Requirements: executor filesystem functions (`listfiles`, `readfile`, `isfolder`,
 `makefolder`), `loadstring`, `setfenv`, and HTTP access. Obsidian is fetched from

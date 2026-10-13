@@ -106,7 +106,7 @@ Library:OnUnload(onCleanup)
 ]]
 scan()
 assert(__mockLibrary.Tabs.Wrong == nil and __mockLibrary.Tabs.Custom)
-assert(#reports == 1, "syntax error not isolated or wrong-game produced errors")
+assert(#reports == 2, "syntax and wrong-game errors should be visible")
 files["addonuser/addons/fails.lua"] = [[
 mspaint.AddonInfo={Name="Fails",Title="Fails",Game="*"}
 mspaint.Groupbox:AddLabel("partial")
@@ -114,6 +114,17 @@ Library:OnUnload(onCleanup)
 error("intentional")
 ]]
 scan() assert(__mockLibrary.Tabs.Fails == nil and cleanupCount == 3)
+files["addonuser/addons/env.lua"] = [[
+local host = getgenv().mspaint
+host.AddonInfo={Name="Env",Title="Env",Game="*"}
+assert(loadstring('mspaint.Groupbox:AddLabel("nested loader works")'))()
+assert(getgenv().Library == Library)
+]]
+scan()
+assert(__mockLibrary.Tabs.Env, "getgenv/nested loader did not receive addon host")
+local errors = 0
+for name in pairs(__mockLibrary.Tabs) do if name:match("^Load error:") then errors=errors+1 end end
+assert(errors == 3, "failed addons need visible explanations")
 for path in pairs(files) do files[path] = nil end
 scan() assert(next(__mockLibrary.Tabs) == nil and cleanupCount == 5, "removal did not restore empty window")
 viewer:Unload()
